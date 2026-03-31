@@ -13,6 +13,7 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
@@ -21,4 +22,5 @@ dependencies {
 
     implementation("org.jetbrains:annotations:24.1.0")
     implementation("com.formdev:flatlaf:3.5.1")
+    implementation("com.formdev:flatlaf-extras:3.5.1")
 }

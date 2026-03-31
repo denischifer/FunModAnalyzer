@@ -27,61 +27,64 @@ public class ModDetailsDialog extends JDialog {
         super(parent, "Mod Details", true);
         this.info = info;
 
-        setSize(850, 720);
-        setMinimumSize(new Dimension(750, 600));
+        setSize(900, 750);
+        setMinimumSize(new Dimension(800, 650));
         setLocationRelativeTo(parent);
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 0));
 
-        GuiFactory.RoundedPanel content = new GuiFactory.RoundedPanel(16, new BorderLayout());
+        GuiFactory.RoundedPanel content = new GuiFactory.RoundedPanel(24, new BorderLayout());
         content.setBackground(GuiFactory.BG_DARK);
-        content.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,#27272a,,16");
+        content.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,#2d2d30,,24");
 
         JPanel header = createHeader();
         initDragListeners(header);
 
         JPanel main = new JPanel(new GridBagLayout());
         main.setOpaque(false);
-        main.setBorder(BorderFactory.createEmptyBorder(0, 30, 25, 30));
+        main.setBorder(BorderFactory.createEmptyBorder(0, 40, 35, 40));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.gridx = 0;
 
-        gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 18, 0);
+        int row = 0;
+        gbc.gridy = row++; gbc.insets = new Insets(0, 0, 20, 0);
         main.add(createSectionTitle("ОБЩАЯ ИНФОРМАЦИЯ"), gbc);
 
-        gbc.gridy = 1; main.add(createDataRow("Путь", info.getPath(), true), gbc);
-        gbc.gridy = 2; main.add(createDataRow("Размер", ByteUtil.formatBytes(info.getSizeBytes()), false), gbc);
-        gbc.gridy = 3; main.add(createDataRow("SHA-1", getHashSafe(info.getPath()), true), gbc);
-        gbc.gridy = 4; main.add(createDataRow("Изменён", getModDateSafe(info.getPath()), false), gbc);
+        gbc.insets = new Insets(0, 0, 5, 0);
+        gbc.gridy = row++; main.add(createDataRow("Путь", info.getPath(), true), gbc);
+        gbc.gridy = row++; main.add(createDataRow("Размер", ByteUtil.formatBytes(info.getSizeBytes()), false), gbc);
+        gbc.gridy = row++; main.add(createDataRow("SHA-1 Хеш", getHashSafe(info.getPath()), true), gbc);
+        gbc.gridy = row++; main.add(createDataRow("Дата изменения", getModDateSafe(info.getPath()), false), gbc);
 
-        gbc.gridy = 5;
-        gbc.insets = new Insets(30, 0, 18, 0);
-        main.add(createSectionTitle("АНАЛИЗ"), gbc);
+        gbc.gridy = row++; gbc.insets = new Insets(35, 0, 20, 0);
+        main.add(createSectionTitle("АНАЛИЗ БЕЗОПАСНОСТИ"), gbc);
 
         gbc.insets = new Insets(0, 0, 10, 0);
-        gbc.gridy = 6; main.add(createStatusRow("Modrinth API", info.isModrinthFound() ? "ПОДТВЕРЖДЕНО" : "НЕ НАЙДЕНО", info.isModrinthFound()), gbc);
-        gbc.gridy = 7; main.add(createStatusRow("Эвристика", info.isSuspicious() ? "ПОДОЗРИТЕЛЬНО" : "ЧИСТО", !info.isSuspicious()), gbc);
+        gbc.gridy = row++; main.add(createStatusRow("Modrinth API", info.isModrinthFound() ? "ПОДТВЕРЖДЕНО" : "НЕ НАЙДЕНО", info.isModrinthFound()), gbc);
+        gbc.gridy = row++; main.add(createStatusRow("Эвристика", info.isSuspicious() ? "ПОДОЗРИТЕЛЬНО" : "ЧИСТО", !info.isSuspicious()), gbc);
 
-        gbc.gridy = 8;
-        gbc.insets = new Insets(30, 0, 12, 0);
+        gbc.gridy = row++; gbc.insets = new Insets(35, 0, 15, 0);
         main.add(createSectionTitle("ЛОГИ ПРОВЕРКИ"), gbc);
 
-        JTextArea logs = new JTextArea(String.join("\n", info.getHeuristicLogs()));
+        JTextArea logs = new JTextArea(info.getHeuristicLogs().isEmpty() ? "Логи отсутствуют." : String.join("\n", info.getHeuristicLogs()));
         logs.setEditable(false);
-        logs.setBackground(new Color(20, 20, 23));
+        logs.setBackground(new Color(18, 18, 22));
         logs.setForeground(new Color(161, 161, 170));
         logs.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 12));
-        logs.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        logs.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JScrollPane scroll = new JScrollPane(logs);
         GuiFactory.applyModernScrollBar(scroll);
-        scroll.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,#27272a");
 
-        gbc.gridy = 9;
+        scroll.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,#2d2d30,,12");
+
+        scroll.getViewport().setOpaque(false);
+        scroll.setOpaque(false);
+
+        gbc.gridy = row;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.insets = new Insets(5, 0, 10, 0);
@@ -97,23 +100,21 @@ public class ModDetailsDialog extends JDialog {
     private JPanel createHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        header.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
+        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
 
         JLabel titleName = new JLabel(info.getName());
-        titleName.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 22));
-        titleName.setForeground(info.isSuspicious() ? new Color(248, 113, 113) : GuiFactory.TEXT_PRIMARY);
+        titleName.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 26));
+        titleName.setForeground(info.isSuspicious() ? new Color(248, 113, 113) : Color.WHITE);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         actions.setOpaque(false);
 
-        JButton copyName = new GuiFactory.RoundedButton("Копировать имя", false);
-        copyName.setPreferredSize(new Dimension(150, 36));
-        copyName.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
+        JButton copyName = new GuiFactory.RoundedButton("КОПИРОВАТЬ ИМЯ", false);
+        copyName.setPreferredSize(new Dimension(170, 40));
         copyName.addActionListener(e -> copyToClipboard(info.getName()));
 
-        JButton close = new GuiFactory.RoundedButton("Закрыть", true);
-        close.setPreferredSize(new Dimension(100, 36));
-        close.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
+        JButton close = new GuiFactory.RoundedButton("ЗАКРЫТЬ", true);
+        close.setPreferredSize(new Dimension(110, 40));
         close.addActionListener(e -> dispose());
 
         actions.add(copyName);
@@ -141,36 +142,36 @@ public class ModDetailsDialog extends JDialog {
         l.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
         l.setForeground(GuiFactory.ACCENT_BLUE);
         l.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(63, 63, 70)),
-                BorderFactory.createEmptyBorder(0, 0, 6, 0)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(45, 45, 52)),
+                BorderFactory.createEmptyBorder(0, 0, 8, 0)
         ));
         return l;
     }
 
     private JPanel createDataRow(String k, String v, boolean copyable) {
-        JPanel p = new JPanel(new BorderLayout(20, 0));
+        JPanel p = new JPanel(new BorderLayout(25, 0));
         p.setOpaque(false);
-        p.setBorder(BorderFactory.createEmptyBorder(6, 0, 6, 0));
+        p.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
 
-        JLabel kl = new JLabel(k);
+        JLabel kl = new JLabel(k.toUpperCase());
         kl.setForeground(GuiFactory.TEXT_GRAY);
-        kl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
-        kl.setPreferredSize(new Dimension(120, 25));
+        kl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
+        kl.setPreferredSize(new Dimension(140, 25));
 
         JTextField vl = new JTextField(v);
         vl.setEditable(false);
         vl.setOpaque(false);
         vl.setBorder(null);
-        vl.setForeground(new Color(228, 228, 231));
+        vl.setForeground(new Color(212, 212, 216));
         vl.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 13));
 
         p.add(kl, BorderLayout.WEST);
         p.add(vl, BorderLayout.CENTER);
 
         if (copyable) {
-            JButton copyBtn = new GuiFactory.RoundedButton("Copy", false);
-            copyBtn.setPreferredSize(new Dimension(70, 26));
-            copyBtn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 10));
+            JButton copyBtn = new GuiFactory.RoundedButton("COPY", false);
+            copyBtn.setPreferredSize(new Dimension(75, 28));
+            copyBtn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 9));
             copyBtn.addActionListener(e -> copyToClipboard(v));
             p.add(copyBtn, BorderLayout.EAST);
         }
@@ -178,18 +179,18 @@ public class ModDetailsDialog extends JDialog {
     }
 
     private JPanel createStatusRow(String k, String v, boolean good) {
-        JPanel p = new JPanel(new BorderLayout(20, 0));
+        JPanel p = new JPanel(new BorderLayout(25, 0));
         p.setOpaque(false);
-        p.setBorder(BorderFactory.createEmptyBorder(6, 0, 6, 0));
+        p.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
 
-        JLabel kl = new JLabel(k);
+        JLabel kl = new JLabel(k.toUpperCase());
         kl.setForeground(GuiFactory.TEXT_GRAY);
-        kl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
-        kl.setPreferredSize(new Dimension(120, 25));
+        kl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
+        kl.setPreferredSize(new Dimension(140, 25));
 
         JLabel vl = new JLabel(v);
-        vl.setForeground(good ? new Color(74, 222, 128) : new Color(248, 113, 113));
-        vl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 14));
+        vl.setForeground(good ? new Color(52, 211, 153) : new Color(248, 113, 113));
+        vl.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 15));
 
         p.add(kl, BorderLayout.WEST);
         p.add(vl, BorderLayout.CENTER);

@@ -1,5 +1,6 @@
 package dev.denischifer.ui.screen;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import dev.denischifer.core.analyzer.ModInfo;
 import dev.denischifer.util.ByteUtil;
 import dev.denischifer.util.GuiFactory;
@@ -37,103 +38,86 @@ public class DashboardScreen {
     }
 
     private void initLayout() {
-        view.setLayout(new BorderLayout(0, 20));
-        view.setBorder(BorderFactory.createEmptyBorder(30, 30, 20, 30));
+        view.setLayout(new BorderLayout(0, 25));
+        view.setBorder(BorderFactory.createEmptyBorder(35, 40, 25, 40));
         view.add(createHeader(), BorderLayout.NORTH);
         view.add(createTableContainer(), BorderLayout.CENTER);
         view.add(createFooter(), BorderLayout.SOUTH);
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout(0, 25));
+        JPanel header = new JPanel(new BorderLayout(0, 30));
         header.setOpaque(false);
 
-        JPanel top = new JPanel(new BorderLayout(20, 0));
+        JPanel top = new JPanel(new BorderLayout(30, 0));
         top.setOpaque(false);
 
         JLabel title = new JLabel("FunModAnalyzer");
-        title.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 32));
-        title.setForeground(GuiFactory.TEXT_PRIMARY);
+        title.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 38));
+        title.setForeground(Color.WHITE);
 
-        JPanel info = new JPanel(new GridBagLayout());
-        info.setOpaque(false);
-        GridBagConstraints gbcInfo = new GridBagConstraints();
-        gbcInfo.fill = GridBagConstraints.HORIZONTAL;
-        gbcInfo.insets = new Insets(0, 15, 0, 15);
-
-        info.add(createInfoLabel("ПРОЦЕСС", ProcessUtil.getMinecraftStartTime(), 150), gbcInfo);
-        gbcInfo.weightx = 1.0;
-        info.add(createInfoLabel("ДИРЕКТОРИЯ", targetPath, 350), gbcInfo);
+        JPanel infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 40, 0));
+        infoWrapper.setOpaque(false);
+        infoWrapper.add(createInfoLabel("ПРОЦЕСС", ProcessUtil.getMinecraftStartTime()));
+        infoWrapper.add(createInfoLabel("ДИРЕКТОРИЯ", targetPath));
 
         top.add(title, BorderLayout.WEST);
-        top.add(info, BorderLayout.CENTER);
+        top.add(infoWrapper, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new BorderLayout(25, 0));
+        JPanel actions = new JPanel(new BorderLayout(30, 0));
         actions.setOpaque(false);
 
         searchField = GuiFactory.createStyledField("");
-        searchField.setPreferredSize(new Dimension(380, 42));
-        searchField.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 14));
+        searchField.setPreferredSize(new Dimension(420, 44));
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Поиск по названию или пути...");
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { updateFilters(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { updateFilters(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { updateFilters(); }
         });
 
-        JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         filters.setOpaque(false);
         String[] tags = {"Валидный", "Невалидный", "Подозрительный"};
         for (String tag : tags) {
-            JButton b = getJButton(tag);
-            filters.add(b);
+            filters.add(createFilterButton(tag));
         }
 
         actions.add(searchField, BorderLayout.WEST);
         actions.add(filters, BorderLayout.EAST);
 
         header.add(top, BorderLayout.NORTH);
-        header.add(actions, BorderLayout.CENTER);
+        header.add(actions, BorderLayout.SOUTH);
         return header;
     }
 
-    private @NotNull JButton getJButton(String tag) {
-        JButton b = new GuiFactory.RoundedButton(tag, false);
-        b.setPreferredSize(new Dimension(140, 38));
-        b.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
+    private JButton createFilterButton(String tag) {
+        JButton b = new GuiFactory.RoundedButton(tag.toUpperCase(), false);
+        b.setPreferredSize(new Dimension(150, 40));
+        b.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
         b.addActionListener(e -> {
             if (activeFilters.contains(tag)) {
                 activeFilters.remove(tag);
-                b.setForeground(GuiFactory.TEXT_PRIMARY);
+                b.putClientProperty(FlatClientProperties.STYLE, "borderColor: #3f3f46; foreground: #f4f4f5");
             } else {
                 activeFilters.add(tag);
-                b.setForeground(GuiFactory.ACCENT_BLUE);
+                b.putClientProperty(FlatClientProperties.STYLE, "borderColor: #3b82f6; foreground: #3b82f6");
             }
             updateFilters();
         });
         return b;
     }
 
-    private JPanel createFooter() {
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setOpaque(false);
-        JLabel version = new JLabel("v1.0.0 • denischifer");
-        version.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
-        version.setForeground(GuiFactory.TEXT_GRAY);
-        footer.add(version, BorderLayout.EAST);
-        return footer;
-    }
-
-    private JPanel createInfoLabel(String title, String value, int maxWidth) {
-        JPanel p = new JPanel(new BorderLayout(0, 4));
+    private JPanel createInfoLabel(String title, String value) {
+        JPanel p = new JPanel(new BorderLayout(0, 5));
         p.setOpaque(false);
         JLabel t = new JLabel(title);
-        t.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 10));
+        t.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
         t.setForeground(GuiFactory.ACCENT_BLUE);
 
         JLabel v = new JLabel(value);
-        v.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
-        v.setForeground(Color.WHITE);
-        v.setPreferredSize(new Dimension(maxWidth, 20));
+        v.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 14));
+        v.setForeground(GuiFactory.TEXT_PRIMARY);
 
         p.add(t, BorderLayout.NORTH);
         p.add(v, BorderLayout.CENTER);
@@ -141,7 +125,7 @@ public class DashboardScreen {
     }
 
     private JComponent createTableContainer() {
-        String[] columns = {"Имя мода", "Путь", "Размер", "Modrinth", "Проверка"};
+        String[] columns = {"ИМЯ МОДА", "ПУТЬ", "РАЗМЕР", "Modrinth API", "РЕЗУЛЬТАТ"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -158,50 +142,43 @@ public class DashboardScreen {
         sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
         table.setBackground(GuiFactory.PANEL_BG);
-        table.setForeground(Color.WHITE);
-        table.setGridColor(new Color(45, 45, 50));
-        table.setRowHeight(50);
-        table.setSelectionBackground(new Color(50, 50, 60));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setRowHeight(56);
         table.setShowVerticalLines(false);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setIntercellSpacing(new Dimension(0, 0));
         table.setFillsViewportHeight(true);
-        table.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 14));
 
         table.getTableHeader().setBackground(GuiFactory.BG_DARK);
         table.getTableHeader().setForeground(GuiFactory.TEXT_GRAY);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 48));
         table.getTableHeader().setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
-        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, GuiFactory.BORDER_COLOR));
 
         TableColumnModel columnModel = table.getColumnModel();
-        columnModel.getColumn(0).setPreferredWidth(220);
-        columnModel.getColumn(1).setPreferredWidth(350);
-        columnModel.getColumn(2).setPreferredWidth(100);
-        columnModel.getColumn(3).setPreferredWidth(120);
-        columnModel.getColumn(4).setPreferredWidth(150);
+        columnModel.getColumn(0).setPreferredWidth(250);
+        columnModel.getColumn(1).setPreferredWidth(300);
+        columnModel.getColumn(4).setPreferredWidth(160);
 
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, value, isSelected, false, row, col);
-                setBorder(new EmptyBorder(0, 15, 0, 15));
+                setBorder(new EmptyBorder(0, 20, 0, 20));
+
                 int modelRow = t.convertRowIndexToModel(row);
                 String modrinthStatus = (String) t.getModel().getValueAt(modelRow, 3);
                 String checkStatus = (String) t.getModel().getValueAt(modelRow, 4);
 
                 if (!isSelected) {
-                    c.setForeground(new Color(230, 230, 230));
-                    if (col == 3) c.setForeground("Валидный".equals(modrinthStatus) ? new Color(74, 222, 128) : new Color(248, 113, 113));
+                    c.setForeground(GuiFactory.TEXT_PRIMARY);
+                    if (col == 3) c.setForeground("Валидный".equals(modrinthStatus) ? new Color(52, 211, 153) : new Color(248, 113, 113));
                     if (col == 4) {
                         if ("Подозрительный".equals(checkStatus)) c.setForeground(new Color(248, 113, 113));
-                        else if ("ОК".equals(checkStatus)) c.setForeground(new Color(74, 222, 128));
+                        else if ("ОК".equals(checkStatus)) c.setForeground(new Color(52, 211, 153));
                     }
-                    if (col == 0 && "Подозрительный".equals(checkStatus)) c.setForeground(new Color(248, 113, 113));
                 }
 
-                if (col == 1 || col == 2) c.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 12));
-                else c.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
+                c.setFont(new Font(col == 1 || col == 2 ? GuiFactory.MONO_FONT : GuiFactory.MAIN_FONT,
+                        col == 0 ? Font.BOLD : Font.PLAIN, 14));
 
                 return c;
             }
@@ -219,22 +196,41 @@ public class DashboardScreen {
 
         JScrollPane sp = new JScrollPane(table);
         GuiFactory.applyModernScrollBar(sp);
-        sp.getViewport().setBackground(GuiFactory.PANEL_BG);
-        sp.setBorder(BorderFactory.createLineBorder(GuiFactory.BORDER_COLOR, 1));
+        sp.setBorder(BorderFactory.createLineBorder(GuiFactory.BORDER_COLOR));
         return sp;
     }
 
     private void updateFilters() {
         List<RowFilter<Object, Object>> filters = new ArrayList<>();
         String text = searchField.getText();
-        if (!text.isEmpty()) filters.add(RowFilter.regexFilter("(?i)" + text));
+
+        if (!text.isEmpty()) {
+            filters.add(RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(text)));
+        }
 
         if (!activeFilters.isEmpty()) {
             List<RowFilter<Object, Object>> tagFilters = new ArrayList<>();
-            for (String tag : activeFilters) tagFilters.add(RowFilter.regexFilter("(?i)" + tag));
+            for (String tag : activeFilters) {
+                tagFilters.add(RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(tag)));
+            }
             filters.add(RowFilter.orFilter(tagFilters));
         }
 
-        sorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        if (sorter != null) {
+            sorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        }
+    }
+
+    private JPanel createFooter() {
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setOpaque(false);
+        footer.setBorder(new EmptyBorder(15, 5, 0, 5));
+
+        JLabel version = new JLabel("FunModAnalyzer v1.0.0 // build by denischifer");
+        version.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 11));
+        version.setForeground(GuiFactory.TEXT_GRAY.darker());
+
+        footer.add(version, BorderLayout.WEST);
+        return footer;
     }
 }

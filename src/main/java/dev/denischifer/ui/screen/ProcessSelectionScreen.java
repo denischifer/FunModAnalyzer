@@ -27,27 +27,26 @@ public class ProcessSelectionScreen {
     }
 
     private void initLayout() {
-        view.setLayout(new BorderLayout(0, 0));
-        view.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
+        view.setLayout(new BorderLayout());
+        view.setBorder(BorderFactory.createEmptyBorder(50, 60, 50, 60));
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
-        headerPanel.setBorder(new EmptyBorder(0, 0, 30, 0));
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 40, 0));
 
         JLabel title = new JLabel("АКТИВНЫЕ ПРОЦЕССЫ");
-        title.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 28));
+        title.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 36));
         title.setForeground(Color.WHITE);
 
-        JLabel subtitle = new JLabel("Выберите процесс Minecraft или Java для сканирования модулей");
-        subtitle.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 14));
-        subtitle.setForeground(GuiFactory.TEXT_GRAY);
+        JLabel sub = new JLabel("Выберите процесс Minecraft или Java для сканирования модулей");
+        sub.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 16));
+        sub.setForeground(GuiFactory.TEXT_GRAY);
 
-        headerPanel.add(title, BorderLayout.NORTH);
-        headerPanel.add(subtitle, BorderLayout.SOUTH);
+        header.add(title, BorderLayout.NORTH);
+        header.add(sub, BorderLayout.SOUTH);
 
-        String[] columns = {"PID", "Имя процесса", "Заголовок окна"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
+        DefaultTableModel model = new DefaultTableModel(new String[]{"PID", "Имя процесса", "Заголовок окна"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
         List<ProcessUtil.JavaProcessInfo> processes = ProcessUtil.getJavaProcesses();
@@ -57,106 +56,73 @@ public class ProcessSelectionScreen {
 
         table = new JTable(model);
         table.setBackground(GuiFactory.PANEL_BG);
-        table.setForeground(Color.WHITE);
-        table.setGridColor(new Color(40, 40, 45));
-        table.setRowHeight(54);
-        table.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 15));
-        table.setSelectionBackground(new Color(60, 60, 75));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setRowHeight(62);
         table.setShowVerticalLines(false);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setFillsViewportHeight(true);
 
+        table.getTableHeader().setPreferredSize(new Dimension(0, 52));
+        table.getTableHeader().setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
         table.getTableHeader().setBackground(GuiFactory.BG_DARK);
         table.getTableHeader().setForeground(GuiFactory.TEXT_GRAY);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
-        table.getTableHeader().setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
-        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, GuiFactory.ACCENT_BLUE));
-
-        table.getColumnModel().getColumn(0).setPreferredWidth(80);
-        table.getColumnModel().getColumn(1).setPreferredWidth(150);
-        table.getColumnModel().getColumn(2).setPreferredWidth(400);
 
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
-                Component c = super.getTableCellRendererComponent(t, value, isSelected, false, row, col);
-                setBorder(new EmptyBorder(0, 20, 0, 20));
+            public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int r, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, s, false, r, col);
+                setBorder(new EmptyBorder(0, 25, 0, 25));
+                c.setFont(new Font(col == 0 ? GuiFactory.MONO_FONT : GuiFactory.MAIN_FONT,
+                        col == 0 ? Font.BOLD : Font.PLAIN, 15));
 
-                if (isSelected) {
+                if (s) {
                     c.setForeground(Color.WHITE);
                 } else {
                     if (col == 0) c.setForeground(GuiFactory.ACCENT_BLUE);
-                    else if (col == 2 && "---".equals(value)) c.setForeground(GuiFactory.TEXT_GRAY);
-                    else c.setForeground(new Color(220, 220, 225));
+                    else if (col == 2 && "---".equals(v)) c.setForeground(GuiFactory.TEXT_GRAY.darker());
+                    else c.setForeground(GuiFactory.TEXT_PRIMARY);
                 }
-
-                if (col == 0) c.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 13));
-                else c.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 14));
-
                 return c;
             }
         });
 
         table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2 && table.getSelectedRow() != -1) {
-                    handleSelection();
-                }
-            }
+            public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2) handleSelection(); }
         });
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        GuiFactory.applyModernScrollBar(scrollPane);
-        scrollPane.getViewport().setBackground(GuiFactory.PANEL_BG);
-        scrollPane.setBorder(BorderFactory.createLineBorder(GuiFactory.BORDER_COLOR, 1));
+        JScrollPane scroll = new JScrollPane(table);
+        GuiFactory.applyModernScrollBar(scroll);
+        scroll.setBorder(BorderFactory.createLineBorder(GuiFactory.BORDER_COLOR));
 
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setOpaque(false);
-        bottomPanel.setBorder(new EmptyBorder(30, 0, 0, 0));
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.setBorder(new EmptyBorder(40, 0, 0, 0));
 
-        JButton backBtn = new GuiFactory.RoundedButton("ОТМЕНА", false);
-        backBtn.setPreferredSize(new Dimension(130, 45));
-        backBtn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
-        backBtn.addActionListener(e -> controller.getMainController().getNavigation().showSelection());
+        JLabel count = new JLabel("Найдено процессов: " + processes.size());
+        count.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 13));
+        count.setForeground(GuiFactory.TEXT_GRAY);
 
-        JButton selectBtn = new GuiFactory.RoundedButton("НАЧАТЬ АНАЛИЗ", true);
-        selectBtn.setPreferredSize(new Dimension(180, 45));
-        selectBtn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
-        selectBtn.addActionListener(e -> handleSelection());
+        GuiFactory.RoundedButton back = new GuiFactory.RoundedButton("ОТМЕНА", false);
+        back.setPreferredSize(new Dimension(140, 50));
+        back.addActionListener(e -> controller.getMainController().getNavigation().showSelection());
 
-        JPanel btnContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        btnContainer.setOpaque(false);
-        btnContainer.add(backBtn);
-        btnContainer.add(selectBtn);
+        GuiFactory.RoundedButton next = new GuiFactory.RoundedButton("НАЧАТЬ АНАЛИЗ", true);
+        next.setPreferredSize(new Dimension(190, 50));
+        next.addActionListener(e -> handleSelection());
 
-        JLabel countLabel = new JLabel("Найдено процессов: " + processes.size());
-        countLabel.setFont(new Font(GuiFactory.MAIN_FONT, Font.ITALIC, 13));
-        countLabel.setForeground(GuiFactory.TEXT_GRAY);
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
+        btns.setOpaque(false);
+        btns.add(back);
+        btns.add(next);
 
-        bottomPanel.add(countLabel, BorderLayout.WEST);
-        bottomPanel.add(btnContainer, BorderLayout.EAST);
+        bottom.add(count, BorderLayout.WEST);
+        bottom.add(btns, BorderLayout.EAST);
 
-        view.add(headerPanel, BorderLayout.NORTH);
-        view.add(scrollPane, BorderLayout.CENTER);
-        view.add(bottomPanel, BorderLayout.SOUTH);
+        view.add(header, BorderLayout.NORTH);
+        view.add(scroll, BorderLayout.CENTER);
+        view.add(bottom, BorderLayout.SOUTH);
     }
 
     private void handleSelection() {
         int row = table.getSelectedRow();
-        if (row != -1) {
-            int pid = (int) table.getValueAt(row, 0);
-            controller.executeMemoryScan(pid);
-        } else {
-            showWarning();
-        }
-    }
-
-    private void showWarning() {
-        UIManager.put("OptionPane.background", GuiFactory.BG_DARK);
-        UIManager.put("Panel.background", GuiFactory.BG_DARK);
-        UIManager.put("OptionPane.messageForeground", Color.WHITE);
-        JOptionPane.showMessageDialog(view, "Пожалуйста, выберите активный процесс из списка для продолжения.", "Внимание", JOptionPane.WARNING_MESSAGE);
+        if (row != -1) controller.executeMemoryScan((int) table.getValueAt(row, 0));
     }
 }

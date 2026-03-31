@@ -26,51 +26,46 @@ public class SelectionScreen {
     private void initLayout() {
         view.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
 
-        JPanel header = new JPanel(new GridBagLayout());
+        JPanel header = new JPanel(new BorderLayout(0, 10));
         header.setOpaque(false);
-        GridBagConstraints hGbc = new GridBagConstraints();
-
-        JLabel title = new JLabel("FUN MOD ANALYZER");
-        title.setFont(new Font("Impact", Font.PLAIN, 64));
+        JLabel title = new JLabel("FUN MOD ANALYZER", SwingConstants.CENTER);
+        title.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 42));
         title.setForeground(Color.WHITE);
 
-        JLabel sub = new JLabel("dev by denischifer");
+        JLabel sub = new JLabel("DEVELOPED BY DENISCHIFER", SwingConstants.CENTER);
         sub.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 12));
         sub.setForeground(GuiFactory.ACCENT_BLUE);
-        sub.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        hGbc.gridy = 0;
-        header.add(title, hGbc);
-        hGbc.gridy = 1;
-        header.add(sub, hGbc);
+        header.add(title, BorderLayout.CENTER);
+        header.add(sub, BorderLayout.SOUTH);
 
         gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 80, 0);
+        gbc.insets = new Insets(0, 0, 70, 0);
         view.add(header, gbc);
 
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 2, 40, 0));
-        cardsPanel.setOpaque(false);
-
-        cardsPanel.add(createMemoryCard());
-        cardsPanel.add(createDiskCard());
+        JPanel cards = new JPanel(new GridLayout(1, 2, 40, 0));
+        cards.setOpaque(false);
+        cards.add(createMemoryCard());
+        cards.add(createDiskCard());
 
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 40, 0);
-        view.add(cardsPanel, gbc);
+        view.add(cards, gbc);
 
-        JLabel footer = new JLabel("v1.0.0 // denischifer");
-        footer.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
+        JLabel footer = new JLabel("v1.0.0 // 2026", SwingConstants.CENTER);
+        footer.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 10));
         footer.setForeground(GuiFactory.TEXT_GRAY.darker());
         gbc.gridy = 2;
-        gbc.insets = new Insets(40, 0, 0, 0);
+        gbc.insets = new Insets(30, 0, 0, 0);
         view.add(footer, gbc);
     }
 
     private JPanel createMemoryCard() {
         return createBaseCard(
-                "СКАНИРОВАНИЕ ПАМЯТИ",
-                "Проверка и анализ файлов в выбранном процессе игры.",
+                "ПАМЯТЬ",
+                "Анализ запущенного процесса игры и модификаций.",
                 null,
                 "ВЫБРАТЬ ПРОЦЕСС",
                 e -> controller.startMemoryScan()
@@ -79,53 +74,46 @@ public class SelectionScreen {
 
     private JPanel createDiskCard() {
         String defaultPath = "C:/Games/FunTime/mods";
-        JTextField pathInput = GuiFactory.createStyledField(defaultPath);
-        pathInput.setPreferredSize(new Dimension(320, 42));
+        JTextField pathInput = new JTextField(defaultPath);
+        pathInput.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 12));
         pathInput.setForeground(GuiFactory.TEXT_GRAY);
+        pathInput.setCaretColor(GuiFactory.ACCENT_BLUE);
         pathInput.setHorizontalAlignment(JTextField.CENTER);
-        pathInput.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 13));
+        pathInput.setOpaque(false);
+        pathInput.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(63, 63, 70)));
 
         pathInput.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (pathInput.getText().equals(defaultPath)) {
-                    pathInput.setText("");
-                    pathInput.setForeground(Color.WHITE);
-                }
+            @Override public void focusGained(FocusEvent e) {
+                if (pathInput.getText().equals(defaultPath)) pathInput.setText("");
+                pathInput.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, GuiFactory.ACCENT_BLUE));
             }
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (pathInput.getText().isEmpty()) {
-                    pathInput.setForeground(GuiFactory.TEXT_GRAY);
-                    pathInput.setText(defaultPath);
-                }
+            @Override public void focusLost(FocusEvent e) {
+                if (pathInput.getText().isEmpty()) pathInput.setText(defaultPath);
+                pathInput.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(63, 63, 70)));
             }
         });
 
-        JPanel inputWrapper = new JPanel(new BorderLayout());
-        inputWrapper.setOpaque(false);
-        inputWrapper.setBorder(new EmptyBorder(15, 0, 0, 0));
-        inputWrapper.add(pathInput, BorderLayout.CENTER);
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.setBorder(new EmptyBorder(15, 0, 15, 0));
+        wrap.add(pathInput);
 
         return createBaseCard(
-                "СКАНИРОВАНИЕ ДИСКА",
-                "Анализ файлов в выбранной папке.",
-                inputWrapper,
+                "ДИСК",
+                "Сканирование модификаций в указанной директории.",
+                wrap,
                 "НАЧАТЬ ПРОВЕРКУ",
                 e -> controller.startDiskScan(pathInput.getText())
         );
     }
 
     private JPanel createBaseCard(String title, String desc, JComponent extra, String btnText, java.awt.event.ActionListener action) {
-        GuiFactory.RoundedPanel card = new GuiFactory.RoundedPanel(24, new BorderLayout(0, 0));
-        card.setBackground(GuiFactory.PANEL_BG);
-        card.setPreferredSize(new Dimension(420, 280));
+        GuiFactory.RoundedPanel card = new GuiFactory.RoundedPanel(20, new BorderLayout(0, 15));
+        card.setPreferredSize(new Dimension(380, 280));
+        card.setBackground(new Color(24, 24, 27));
         card.setBorder(BorderFactory.createEmptyBorder(35, 40, 35, 40));
 
-        JPanel top = new JPanel(new BorderLayout(0, 10));
-        top.setOpaque(false);
-
-        JLabel t = new JLabel(title);
+        JLabel t = new JLabel(title, SwingConstants.CENTER);
         t.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 22));
         t.setForeground(Color.WHITE);
 
@@ -137,34 +125,28 @@ public class SelectionScreen {
         d.setEditable(false);
         d.setFocusable(false);
         d.setOpaque(false);
-        d.setHighlighter(null);
-
-        top.add(t, BorderLayout.NORTH);
-        top.add(d, BorderLayout.CENTER);
+        d.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel center = new JPanel(new BorderLayout());
         center.setOpaque(false);
-        if (extra != null) center.add(extra, BorderLayout.NORTH);
+        center.add(d, BorderLayout.CENTER);
+        if (extra != null) center.add(extra, BorderLayout.SOUTH);
 
-        GuiFactory.RoundedButton btn = new GuiFactory.RoundedButton(btnText, true);
-        btn.setPreferredSize(new Dimension(0, 50));
-        btn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
+        JButton btn = new GuiFactory.RoundedButton(btnText, true);
+        btn.setPreferredSize(new Dimension(0, 48));
+        btn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 12));
         btn.addActionListener(action);
 
-        card.add(top, BorderLayout.NORTH);
+        card.add(t, BorderLayout.NORTH);
         card.add(center, BorderLayout.CENTER);
         card.add(btn, BorderLayout.SOUTH);
 
         card.addMouseListener(new MouseAdapter() {
-            @Override
             public void mouseEntered(MouseEvent e) {
-                card.setBackground(new Color(35, 35, 45));
-                card.repaint();
+                card.setBackground(new Color(32, 32, 38));
             }
-            @Override
             public void mouseExited(MouseEvent e) {
-                card.setBackground(GuiFactory.PANEL_BG);
-                card.repaint();
+                card.setBackground(new Color(24, 24, 27));
             }
         });
 
