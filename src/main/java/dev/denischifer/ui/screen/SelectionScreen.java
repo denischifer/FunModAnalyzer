@@ -6,13 +6,12 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class SelectionScreen {
     @Getter private final JPanel view;
@@ -25,39 +24,66 @@ public class SelectionScreen {
     }
 
     private void initLayout() {
-        JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.setBackground(GuiFactory.BG_DARK);
+        view.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        JPanel header = getJPanel();
+        JPanel header = new JPanel(new GridBagLayout());
+        header.setOpaque(false);
+        GridBagConstraints hGbc = new GridBagConstraints();
 
-        gbc.gridx = 0; gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 60, 0);
-        wrapper.add(header, gbc);
+        JLabel title = new JLabel("FUN MOD ANALYZER");
+        title.setFont(new Font("Impact", Font.PLAIN, 64));
+        title.setForeground(Color.WHITE);
 
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 2, 30, 0));
+        JLabel sub = new JLabel("dev by denischifer");
+        sub.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 12));
+        sub.setForeground(GuiFactory.ACCENT_BLUE);
+        sub.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        hGbc.gridy = 0;
+        header.add(title, hGbc);
+        hGbc.gridy = 1;
+        header.add(sub, hGbc);
+
+        gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, 80, 0);
+        view.add(header, gbc);
+
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 2, 40, 0));
         cardsPanel.setOpaque(false);
 
-        cardsPanel.add(createCard("СКАНИРОВАНИЕ ПАМЯТИ",
-                "Анализ активных Java-процессов и модов в реальном времени.",
-                null, "ЗАПУСТИТЬ АНАЛИЗ", e -> controller.startMemoryScan()));
+        cardsPanel.add(createMemoryCard());
+        cardsPanel.add(createDiskCard());
 
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 40, 0);
+        view.add(cardsPanel, gbc);
+
+        JLabel footer = new JLabel("v1.0.0 // denischifer");
+        footer.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 11));
+        footer.setForeground(GuiFactory.TEXT_GRAY.darker());
+        gbc.gridy = 2;
+        gbc.insets = new Insets(40, 0, 0, 0);
+        view.add(footer, gbc);
+    }
+
+    private JPanel createMemoryCard() {
+        return createBaseCard(
+                "СКАНИРОВАНИЕ ПАМЯТИ",
+                "Проверка и анализ файлов в выбранном процессе игры.",
+                null,
+                "ВЫБРАТЬ ПРОЦЕСС",
+                e -> controller.startMemoryScan()
+        );
+    }
+
+    private JPanel createDiskCard() {
         String defaultPath = "C:/Games/FunTime/mods";
         JTextField pathInput = GuiFactory.createStyledField(defaultPath);
-        pathInput.setPreferredSize(new Dimension(300, 40));
+        pathInput.setPreferredSize(new Dimension(320, 42));
         pathInput.setForeground(GuiFactory.TEXT_GRAY);
-
-        ((AbstractDocument) pathInput.getDocument()).setDocumentFilter(new DocumentFilter() {
-            @Override
-            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-                fb.insertString(offset, string.replaceAll("\\n", ""), attr);
-            }
-
-            @Override
-            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-                fb.replace(offset, length, text.replaceAll("\\n", ""), attrs);
-            }
-        });
+        pathInput.setHorizontalAlignment(JTextField.CENTER);
+        pathInput.setFont(new Font(GuiFactory.MONO_FONT, Font.PLAIN, 13));
 
         pathInput.addFocusListener(new FocusAdapter() {
             @Override
@@ -76,71 +102,71 @@ public class SelectionScreen {
             }
         });
 
-        JPanel inputContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 10));
-        inputContainer.setOpaque(false);
-        inputContainer.add(pathInput);
+        JPanel inputWrapper = new JPanel(new BorderLayout());
+        inputWrapper.setOpaque(false);
+        inputWrapper.setBorder(new EmptyBorder(15, 0, 0, 0));
+        inputWrapper.add(pathInput, BorderLayout.CENTER);
 
-        cardsPanel.add(createCard("СКАНИРОВАНИЕ ДИСКА",
-                "Статический анализ JAR-файлов в выбранной директории игры.",
-                inputContainer, "НАЧАТЬ ПРОВЕРКУ", e -> controller.startDiskScan(pathInput.getText())));
-
-        gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        wrapper.add(cardsPanel, gbc);
-
-        view.add(wrapper, BorderLayout.CENTER);
+        return createBaseCard(
+                "СКАНИРОВАНИЕ ДИСКА",
+                "Анализ файлов в выбранной папке.",
+                inputWrapper,
+                "НАЧАТЬ ПРОВЕРКУ",
+                e -> controller.startDiskScan(pathInput.getText())
+        );
     }
 
-    private static @NotNull JPanel getJPanel() {
-        JPanel header = new JPanel(new BorderLayout(0, 5));
-        header.setOpaque(false);
-
-        JLabel title = new JLabel("FUN MOD ANALYZER");
-        title.setFont(new Font("Impact", Font.PLAIN, 48));
-        title.setForeground(Color.WHITE);
-        title.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel sub = new JLabel("V 1.0.0 // dev by denischifer", SwingConstants.CENTER);
-        sub.setFont(new Font("Monospaced", Font.BOLD, 14));
-        sub.setForeground(GuiFactory.ACCENT_BLUE);
-
-        header.add(title, BorderLayout.CENTER);
-        header.add(sub, BorderLayout.SOUTH);
-        return header;
-    }
-
-    private JPanel createCard(String title, String desc, JComponent extra, String btnText, java.awt.event.ActionListener action) {
-        GuiFactory.RoundedPanel card = new GuiFactory.RoundedPanel(16, new BorderLayout(0, 15));
+    private JPanel createBaseCard(String title, String desc, JComponent extra, String btnText, java.awt.event.ActionListener action) {
+        GuiFactory.RoundedPanel card = new GuiFactory.RoundedPanel(24, new BorderLayout(0, 0));
         card.setBackground(GuiFactory.PANEL_BG);
-        card.setPreferredSize(new Dimension(380, 260));
-        card.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        card.setPreferredSize(new Dimension(420, 280));
+        card.setBorder(BorderFactory.createEmptyBorder(35, 40, 35, 40));
+
+        JPanel top = new JPanel(new BorderLayout(0, 10));
+        top.setOpaque(false);
 
         JLabel t = new JLabel(title);
-        t.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        t.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 22));
         t.setForeground(Color.WHITE);
 
         JTextArea d = new JTextArea(desc);
-        d.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        d.setFont(new Font(GuiFactory.MAIN_FONT, Font.PLAIN, 14));
         d.setForeground(GuiFactory.TEXT_GRAY);
         d.setLineWrap(true);
         d.setWrapStyleWord(true);
         d.setEditable(false);
+        d.setFocusable(false);
         d.setOpaque(false);
+        d.setHighlighter(null);
 
-        JPanel content = new JPanel(new BorderLayout());
-        content.setOpaque(false);
-        content.add(d, BorderLayout.NORTH);
-        if (extra != null) {
-            content.add(extra, BorderLayout.CENTER);
-        }
+        top.add(t, BorderLayout.NORTH);
+        top.add(d, BorderLayout.CENTER);
+
+        JPanel center = new JPanel(new BorderLayout());
+        center.setOpaque(false);
+        if (extra != null) center.add(extra, BorderLayout.NORTH);
 
         GuiFactory.RoundedButton btn = new GuiFactory.RoundedButton(btnText, true);
-        btn.setPreferredSize(new Dimension(0, 45));
+        btn.setPreferredSize(new Dimension(0, 50));
+        btn.setFont(new Font(GuiFactory.MAIN_FONT, Font.BOLD, 13));
         btn.addActionListener(action);
 
-        card.add(t, BorderLayout.NORTH);
-        card.add(content, BorderLayout.CENTER);
+        card.add(top, BorderLayout.NORTH);
+        card.add(center, BorderLayout.CENTER);
         card.add(btn, BorderLayout.SOUTH);
+
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                card.setBackground(new Color(35, 35, 45));
+                card.repaint();
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                card.setBackground(GuiFactory.PANEL_BG);
+                card.repaint();
+            }
+        });
 
         return card;
     }

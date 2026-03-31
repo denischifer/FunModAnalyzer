@@ -4,6 +4,7 @@ import dev.denischifer.core.analyzer.ModInfo;
 import dev.denischifer.ui.screen.SelectionScreen;
 import dev.denischifer.ui.screen.DashboardScreen;
 import dev.denischifer.ui.screen.LoadingScreen;
+import dev.denischifer.ui.screen.ProcessSelectionScreen;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,6 +24,10 @@ public class NavigationController {
 
     public void showSelection() {
         render(new SelectionScreen(new ScanController(mainController)).getView());
+    }
+
+    public void showProcessSelection(ScanController controller) {
+        render(new ProcessSelectionScreen(controller).getView());
     }
 
     public void showDashboard(List<ModInfo> results, String path) {
