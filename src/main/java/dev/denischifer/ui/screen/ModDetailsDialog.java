@@ -27,8 +27,8 @@ public class ModDetailsDialog extends JDialog {
         super(parent, "Mod Details", true);
         this.info = info;
 
-        setSize(900, 750);
-        setMinimumSize(new Dimension(800, 650));
+        setSize(900, 800);
+        setMinimumSize(new Dimension(800, 700));
         setLocationRelativeTo(parent);
         setUndecorated(true);
         setBackground(new Color(0, 0, 0, 0));
@@ -59,6 +59,9 @@ public class ModDetailsDialog extends JDialog {
         gbc.gridy = row++; main.add(createDataRow("SHA-1 Хеш", getHashSafe(info.getPath()), true), gbc);
         gbc.gridy = row++; main.add(createDataRow("Дата изменения", getModDateSafe(info.getPath()), false), gbc);
 
+        String source = info.getDownloadSource();
+        gbc.gridy = row++; main.add(createDataRow("Источник", source != null ? source : "Неизвестно", source != null), gbc);
+
         gbc.gridy = row++; gbc.insets = new Insets(35, 0, 20, 0);
         main.add(createSectionTitle("АНАЛИЗ БЕЗОПАСНОСТИ"), gbc);
 
@@ -78,9 +81,7 @@ public class ModDetailsDialog extends JDialog {
 
         JScrollPane scroll = new JScrollPane(logs);
         GuiFactory.applyModernScrollBar(scroll);
-
         scroll.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,#2d2d30,,12");
-
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
 

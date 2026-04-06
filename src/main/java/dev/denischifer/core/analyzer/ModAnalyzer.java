@@ -229,22 +229,35 @@ public class ModAnalyzer {
 
     public static @Nullable String getDownloadSource(@NotNull Path file) {
         try {
-            Path zonePath = Paths.get(file + ":Zone.Identifier");
+            Path zonePath = Paths.get(file.toAbsolutePath() + ":Zone.Identifier");
             if (Files.exists(zonePath)) {
-                String content = new String(Files.readAllBytes(zonePath), StandardCharsets.UTF_8);
-                Matcher matcher = HOST_URL_PATTERN.matcher(content);
+                String content = new String(Files.readAllBytes(zonePath), StandardCharsets.ISO_8859_1);
+
+                Matcher matcher = Pattern.compile("HostUrl=(.*)", Pattern.CASE_INSENSITIVE).matcher(content);
                 if (matcher.find()) {
                     String url = matcher.group(1).trim().toLowerCase();
+
                     if (url.contains("mediafire.com")) return "MediaFire";
                     if (url.contains("discord.com") || url.contains("discordapp.com")) return "Discord";
                     if (url.contains("dropbox.com")) return "Dropbox";
                     if (url.contains("drive.google.com")) return "Google Drive";
-                    if (url.contains("mega.nz")) return "MEGA";
+                    if (url.contains("mega.nz") || url.contains("mega.co.nz")) return "MEGA";
                     if (url.contains("github.com")) return "GitHub";
                     if (url.contains("modrinth.com")) return "Modrinth";
                     if (url.contains("curseforge.com")) return "CurseForge";
                     if (url.contains("anydesk.com")) return "AnyDesk";
-                    return matcher.group(1).trim();
+
+                    if (url.contains("doomsdayclient.com")) return "DoomsdayClient";
+                    if (url.contains("prestigeclient.vip")) return "PrestigeClient";
+                    if (url.contains("198macros.com")) return "198Macros";
+                    if (url.contains("dqrkis.xyz")) return "Dqrkis";
+
+                    Matcher domainMatcher = Pattern.compile("https?://(?:www\\.)?([^/]+)").matcher(url);
+                    if (domainMatcher.find()) {
+                        return domainMatcher.group(1);
+                    }
+
+                    return url;
                 }
             }
         } catch (Exception ignored) {}
