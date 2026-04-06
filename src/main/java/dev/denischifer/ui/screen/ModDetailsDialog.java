@@ -13,7 +13,7 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
@@ -202,8 +202,8 @@ public class ModDetailsDialog extends JDialog {
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
     }
 
-    private String getHashSafe(String p) { try { return FileUtil.getSha1Hash(Path.of(p)); } catch (Exception e) { return "Error"; } }
+    private String getHashSafe(String p) { try { return FileUtil.getSha1Hash(Paths.get(p)); } catch (Exception e) { return "Error"; } }
     private String getModDateSafe(String p) {
-        try { return DATE_FORMATTER.format(Files.getLastModifiedTime(Path.of(p)).toInstant()); } catch (Exception e) { return "N/A"; }
+        try { return DATE_FORMATTER.format(Files.getLastModifiedTime(Paths.get(p)).toInstant()); } catch (Exception e) { return "N/A"; }
     }
 }

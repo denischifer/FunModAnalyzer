@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="FunModAnalyzer.main:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/FunModAnalyzer_main_jar</output-path>
+    <root id="archive" name="FunModAnalyzer.main.jar">
+      <element id="module-output" name="FunModAnalyzer.main" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.weisj/jsvg/1.4.0/3f057f61a79b63015dcdb3ae15f935951e4bedd9/jsvg-1.4.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/24.1.0/7af6a669488450c4a07c2c3254e2151df42d7d04/annotations-24.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.formdev/flatlaf-extras/3.5.1/42cf9ed86d4ae9d95a6013db792c8f2df642ca56/flatlaf-extras-3.5.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.formdev/flatlaf/3.5.1/8e4295f9ba5756736fa60a3a567fd9cd8840594f/flatlaf-3.5.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DiskScanTask extends ScanTask<List<ModInfo>> {
@@ -37,7 +39,7 @@ public class DiskScanTask extends ScanTask<List<ModInfo>> {
             List<String> logs;
 
             if (modrinth) {
-                logs = List.of("Проверка пропущена");
+                logs = Collections.singletonList("Проверка пропущена");
             } else {
                 logs = ModAnalyzer.getHeuristicLogs(jar);
             }
@@ -60,10 +62,10 @@ public class DiskScanTask extends ScanTask<List<ModInfo>> {
     }
 
     private List<Path> findJarFiles(Path dir) throws IOException {
-        if (!Files.exists(dir)) return List.of();
+        if (!Files.exists(dir)) return Collections.emptyList();
         try (Stream<Path> stream = Files.walk(dir)) {
             return stream.filter(p -> p.toString().toLowerCase().endsWith(".jar") && Files.isRegularFile(p))
-                    .toList();
+                    .collect(Collectors.toList());
         }
     }
 }

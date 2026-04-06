@@ -4,17 +4,14 @@ import dev.denischifer.util.FileUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -22,11 +19,7 @@ import java.util.zip.ZipInputStream;
 
 public class ModAnalyzer {
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
-    private static final Set<String> SUSPICIOUS_PATTERNS = Set.of(
+    private static final Set<String> SUSPICIOUS_PATTERNS = new HashSet<>(Arrays.asList(
             "AimAssist", "AnchorTweaks", "AutoAnchor", "AutoCrystal", "AutoDoubleHand",
             "AutoHitCrystal", "AutoPot", "AutoTotem", "AutoArmor", "InventoryTotem",
             "JumpReset", "LegitTotem", "PingSpoof", "SelfDestruct", "ShieldBreaker",
@@ -49,9 +42,9 @@ public class ModAnalyzer {
             "そ.class", "な.class", "ど.class", "ぐ.class", "ず.class", "で.class",
             "つ.class", "べ.class", "せ.class", "と.class", "み.class", "び.class",
             "す.class", "の.class"
-    );
+    ));
 
-    private static final Set<String> CHEAT_STRINGS = Set.of(
+    private static final Set<String> CHEAT_STRINGS = new HashSet<>(Arrays.asList(
             "AutoCrystal", "autocrystal", "auto crystal", "cw crystal", "dontPlaceCrystal",
             "dontBreakCrystal", "AutoHitCrystal", "autohitcrystal", "canPlaceCrystalServer",
             "healPotSlot", "AutoAnchor", "autoanchor", "auto anchor", "DoubleAnchor",
@@ -76,24 +69,36 @@ public class ModAnalyzer {
             "invokeDoAttack", "invokeDoItemUse", "invokeOnMouseButton", "onTickMovement",
             "onPushOutOfBlocks", "onIsGlowing", "Automatically switches to sword when hitting with totem",
             "arrayOfString", "POT_CHEATS", "Dqrkis Client", "Entity.isGlowing"
-    );
+    ));
 
     private static final Pattern HOST_URL_PATTERN = Pattern.compile("HostUrl=(.+)");
 
     public static boolean checkModrinthApi(@NotNull Path file) {
+        HttpURLConnection conn = null;
         try {
             String sha1 = FileUtil.getSha1Hash(file);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.modrinth.com/v2/version_file/" + sha1 + "?algorithm=sha1"))
-                    .header("User-Agent", "FunModAnalyzer/1.0")
-                    .GET()
-                    .build();
+            URL url = new URL("https://api.modrinth.com/v2/version_file/" + sha1 + "?algorithm=sha1");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "FunModAnalyzer/1.0");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
 
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 200 && response.body().contains("\"project_id\"");
+            int status = conn.getResponseCode();
+            if (status == 200) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    return response.toString().contains("\"project_id\"");
+                }
+            }
         } catch (Exception e) {
             return false;
+        } finally {
+            if (conn != null) conn.disconnect();
         }
+        return false;
     }
 
     public static List<String> getHeuristicLogs(@NotNull Path file) {
@@ -110,8 +115,8 @@ public class ModAnalyzer {
                 }
 
                 if (name.endsWith(".class")) {
-                    byte[] bytes = zis.readAllBytes();
-                    String content = new String(bytes, StandardCharsets.ISO_8859_1);
+                    byte[] bytes = readAllBytesFromStream(zis);
+                    String content = new String(bytes, "ISO-8859-1");
                     for (String cheat : CHEAT_STRINGS) {
                         if (content.contains(cheat)) {
                             logs.add("Suspicious string in " + name + ": " + cheat);
@@ -125,9 +130,10 @@ public class ModAnalyzer {
 
     public static @Nullable String getDownloadSource(@NotNull Path file) {
         try {
-            Path zonePath = Path.of(file + ":Zone.Identifier");
+            Path zonePath = Paths.get(file + ":Zone.Identifier");
             if (Files.exists(zonePath)) {
-                String content = Files.readString(zonePath);
+                byte[] bytes = Files.readAllBytes(zonePath);
+                String content = new String(bytes, StandardCharsets.UTF_8);
                 Matcher matcher = HOST_URL_PATTERN.matcher(content);
                 if (matcher.find()) {
                     String url = matcher.group(1).trim().toLowerCase();
@@ -147,8 +153,7 @@ public class ModAnalyzer {
                     return matcher.group(1).trim();
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return null;
     }
 
@@ -159,23 +164,28 @@ public class ModAnalyzer {
                 String name = entry.getName();
 
                 for (String pattern : SUSPICIOUS_PATTERNS) {
-                    if (name.contains(pattern)) {
-                        return true;
-                    }
+                    if (name.contains(pattern)) return true;
                 }
 
                 if (name.endsWith(".class")) {
-                    byte[] bytes = zis.readAllBytes();
-                    String content = new String(bytes, StandardCharsets.ISO_8859_1);
+                    byte[] bytes = readAllBytesFromStream(zis);
+                    String content = new String(bytes, "ISO-8859-1");
                     for (String cheat : CHEAT_STRINGS) {
-                        if (content.contains(cheat)) {
-                            return true;
-                        }
+                        if (content.contains(cheat)) return true;
                     }
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return false;
+    }
+
+    private static byte[] readAllBytesFromStream(InputStream is) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[16384];
+        while ((nRead = is.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+        return buffer.toByteArray();
     }
 }

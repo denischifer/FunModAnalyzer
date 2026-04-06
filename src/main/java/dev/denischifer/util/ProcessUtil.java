@@ -1,11 +1,13 @@
 package dev.denischifer.util;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -18,7 +20,13 @@ public class ProcessUtil {
     private static final DateTimeFormatter UI_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss dd.MM.yyyy")
             .withZone(ZoneId.systemDefault());
 
-    public record JavaProcessInfo(int pid, String name, String windowTitle) {}
+    @Data
+    @AllArgsConstructor
+    public static class JavaProcessInfo {
+        private final int pid;
+        private final String name;
+        private final String windowTitle;
+    }
 
     public static @NotNull List<JavaProcessInfo> getJavaProcesses() {
         List<JavaProcessInfo> processes = new ArrayList<>();
@@ -53,7 +61,7 @@ public class ProcessUtil {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line = reader.readLine();
                 if (line != null && !line.trim().isEmpty()) {
-                    return Path.of(line.trim()).getParent().toString();
+                    return Paths.get(line.trim()).getParent().toString();
                 }
             }
 
@@ -63,10 +71,10 @@ public class ProcessUtil {
                 String cmd = reader.readLine();
                 if (cmd != null && !cmd.isEmpty()) {
                     Matcher m = Pattern.compile("--gameDir\\s+\"?([^\"]+)\"?").matcher(cmd);
-                    if (m.find()) return Path.of(m.group(1), "mods").toString();
+                    if (m.find()) return Paths.get(m.group(1), "mods").toString();
 
                     m = Pattern.compile("-Djava\\.library\\.path=\"?([^\"]+)\"?").matcher(cmd);
-                    if (m.find()) return Path.of(m.group(1)).getParent().resolve("mods").toString();
+                    if (m.find()) return Paths.get(m.group(1)).getParent().resolve("mods").toString();
                 }
             }
         } catch (Exception ignored) {}
@@ -89,9 +97,7 @@ public class ProcessUtil {
                     return odt.atZoneSameInstant(ZoneId.systemDefault()).format(UI_FORMATTER);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception ignored) {}
 
         return "Не запущен";
     }

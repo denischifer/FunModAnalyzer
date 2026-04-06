@@ -51,7 +51,7 @@ public class ProcessSelectionScreen {
 
         List<ProcessUtil.JavaProcessInfo> processes = ProcessUtil.getJavaProcesses();
         for (ProcessUtil.JavaProcessInfo p : processes) {
-            model.addRow(new Object[]{p.pid(), p.name(), p.windowTitle().isEmpty() ? "---" : p.windowTitle()});
+            model.addRow(new Object[]{p.getPid(), p.getName(), p.getWindowTitle().isEmpty() ? "---" : p.getWindowTitle()});
         }
 
         table = new JTable(model);

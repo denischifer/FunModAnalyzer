@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -19,17 +19,17 @@ public class ScanController {
     @Getter
     private final MainController mainController;
 
-    public void startDiskScan(@NotNull String pathStr) {
+    public void startDiskScan(@NotNull final String pathStr) {
         try {
             LoadingScreen loadingScreen = new LoadingScreen();
             mainController.getNavigation().showLoading(loadingScreen);
 
-            DiskScanTask task = new DiskScanTask(Path.of(pathStr), () -> {});
+            DiskScanTask task = new DiskScanTask(Paths.get(pathStr), () -> {});
 
             Thread updateThread = getThread(task, loadingScreen);
             updateThread.start();
 
-            mainController.getExecutor().execute(task, new ScanCallback<>() {
+            mainController.getExecutor().execute(task, new ScanCallback<List<ModInfo>>() {
                 @Override
                 public void onProgress(double progress) {
                 }
@@ -60,7 +60,7 @@ public class ScanController {
     }
 
     public void executeMemoryScan(int pid) {
-        String pathStr = ProcessUtil.getModsPathForPid(pid);
+        final String pathStr = ProcessUtil.getModsPathForPid(pid);
 
         if (pathStr == null) {
             JOptionPane.showMessageDialog(null, "Не удалось определить директорию mods для процесса " + pid);
@@ -71,12 +71,12 @@ public class ScanController {
             LoadingScreen loadingScreen = new LoadingScreen();
             mainController.getNavigation().showLoading(loadingScreen);
 
-            MemoryScanTask task = new MemoryScanTask(Path.of(pathStr), () -> {});
+            MemoryScanTask task = new MemoryScanTask(Paths.get(pathStr), () -> {});
 
             Thread updateThread = getMemoryThread(task, loadingScreen);
             updateThread.start();
 
-            mainController.getExecutor().execute(task, new ScanCallback<>() {
+            mainController.getExecutor().execute(task, new ScanCallback<List<ModInfo>>() {
                 @Override
                 public void onProgress(double progress) {
                 }
@@ -102,7 +102,7 @@ public class ScanController {
         }
     }
 
-    private static @NotNull Thread getThread(DiskScanTask task, LoadingScreen loadingScreen) {
+    private static @NotNull Thread getThread(final DiskScanTask task, final LoadingScreen loadingScreen) {
         Thread updateThread = new Thread(() -> {
             while (true) {
                 int current = task.getCurrent();
@@ -123,7 +123,7 @@ public class ScanController {
         return updateThread;
     }
 
-    private static @NotNull Thread getMemoryThread(MemoryScanTask task, LoadingScreen loadingScreen) {
+    private static @NotNull Thread getMemoryThread(final MemoryScanTask task, final LoadingScreen loadingScreen) {
         Thread updateThread = new Thread(() -> {
             while (true) {
                 int current = task.getCurrent();

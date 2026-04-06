@@ -7,7 +7,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AsyncScannerExecutor {
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executor = Executors.newFixedThreadPool(
+            Math.max(2, Runtime.getRuntime().availableProcessors())
+    );
 
     public <T> void execute(@NotNull ScanTask<T> task, @NotNull ScanCallback<T> callback) {
         CompletableFuture.supplyAsync(() -> {
