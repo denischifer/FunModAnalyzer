@@ -7,12 +7,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,75 +35,82 @@ public class ProcessUtil {
 
     public static @NotNull List<JavaProcessInfo> getJavaProcesses() {
         List<JavaProcessInfo> processes = new ArrayList<>();
-        try {
-            String script = "Get-Process | Where-Object { $_.Name -match 'java' } | Select-Object Id, ProcessName, MainWindowTitle | ConvertTo-Csv -NoTypeInformation";
-            Process process = new ProcessBuilder("powershell", "-NoProfile", "-Command", script).start();
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                boolean headerSkipped = false;
-                while ((line = reader.readLine()) != null) {
-                    if (!headerSkipped) {
-                        headerSkipped = true;
-                        continue;
-                    }
-                    String[] parts = line.replace("\"", "").split(",");
-                    if (parts.length >= 2) {
-                        int pid = Integer.parseInt(parts[0]);
-                        String title = parts.length > 2 ? parts[2] : "";
-                        processes.add(new JavaProcessInfo(pid, parts[1], title));
-                    }
-                }
+        String script = "Get-Process | Where-Object { $_.Name -match 'java' } | Select-Object Id, ProcessName, MainWindowTitle | ConvertTo-Csv -NoTypeInformation";
+        List<String> output = executePowerShell(script);
+        for (int i = 1; i < output.size(); i++) {
+            String[] parts = output.get(i).replace("\"", "").split(",");
+            if (parts.length >= 2) {
+                try {
+                    processes.add(new JavaProcessInfo(Integer.parseInt(parts[0]), parts[1], parts.length > 2 ? parts[2] : ""));
+                } catch (Exception ignored) {}
             }
-        } catch (Exception ignored) {}
+        }
         return processes;
     }
 
     public static @Nullable String getModsPathForPid(int pid) {
-        try {
-            String script = "(Get-Process -Id " + pid + " -Module -ErrorAction SilentlyContinue | Where-Object FileName -like '*\\mods\\*.jar' | Select-Object -First 1).FileName";
-            Process process = new ProcessBuilder("powershell", "-NoProfile", "-Command", script).start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line = reader.readLine();
-                if (line != null && !line.trim().isEmpty()) {
-                    return Paths.get(line.trim()).getParent().toString();
-                }
-            }
+        Set<String> potentialRoots = new HashSet<>();
 
-            String fallbackScript = "Get-WmiObject Win32_Process -Filter \"ProcessId=" + pid + "\" | Select-Object -ExpandProperty CommandLine";
-            Process processFallback = new ProcessBuilder("powershell", "-NoProfile", "-Command", fallbackScript).start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(processFallback.getInputStream()))) {
-                String cmd = reader.readLine();
-                if (cmd != null && !cmd.isEmpty()) {
-                    Matcher m = Pattern.compile("--gameDir\\s+\"?([^\"]+)\"?").matcher(cmd);
-                    if (m.find()) return Paths.get(m.group(1), "mods").toString();
-
-                    m = Pattern.compile("-Djava\\.library\\.path=\"?([^\"]+)\"?").matcher(cmd);
-                    if (m.find()) return Paths.get(m.group(1)).getParent().resolve("mods").toString();
-                }
+        String cmdLine = getCommandLine(pid);
+        if (cmdLine != null) {
+            Matcher m = Pattern.compile("[\"']?([A-Z]:\\\\[^\"']+)[\"']?").matcher(cmdLine);
+            while (m.find()) {
+                potentialRoots.add(m.group(1));
             }
-        } catch (Exception ignored) {}
+        }
+
+        List<String> modulePaths = executePowerShell("Get-Process -Id " + pid + " -Module -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FileName");
+        potentialRoots.addAll(modulePaths);
+
+        List<String> exePath = executePowerShell("(Get-Process -Id " + pid + ").Path");
+        potentialRoots.addAll(exePath);
+
+        for (String rawPath : potentialRoots) {
+            try {
+                Path p = Paths.get(rawPath);
+                while (p != null) {
+                    if (Files.exists(p.resolve("mods"))) {
+                        return p.resolve("mods").toAbsolutePath().toString();
+                    }
+                    if (p.getFileName() != null && p.getFileName().toString().equalsIgnoreCase("mods")) {
+                        return p.toAbsolutePath().toString();
+                    }
+                    p = p.getParent();
+                }
+            } catch (Exception ignored) {}
+        }
+
         return null;
     }
 
-    public static @NotNull String getMinecraftStartTime() {
+    private static @Nullable String getCommandLine(int pid) {
+        List<String> r = executePowerShell("(Get-WmiObject Win32_Process -Filter \"ProcessId = " + pid + "\").CommandLine");
+        return r.isEmpty() ? null : r.get(0);
+    }
+
+    private static @NotNull List<String> executePowerShell(String command) {
+        List<String> lines = new ArrayList<>();
         try {
-            String script = "Get-Process | Where-Object { " +
-                    "($_.Name -match 'java') -and " +
-                    "($_.MainWindowTitle -match 'Minecraft' -or $_.Path -match 'Minecraft' -or $_.Path -match 'Modrinth') " +
-                    "} | Select-Object -ExpandProperty StartTime | Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK'";
-
-            Process process = new ProcessBuilder("powershell", "-NoProfile", "-Command", script).start();
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line = reader.readLine();
-                if (line != null && !line.trim().isEmpty()) {
-                    OffsetDateTime odt = OffsetDateTime.parse(line.trim());
-                    return odt.atZoneSameInstant(ZoneId.systemDefault()).format(UI_FORMATTER);
+            Process p = new ProcessBuilder("powershell", "-NoProfile", "-NonInteractive", "-Command", command).start();
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                String l;
+                while ((l = r.readLine()) != null) {
+                    String trimmed = l.trim();
+                    if (!trimmed.isEmpty()) lines.add(trimmed);
                 }
             }
         } catch (Exception ignored) {}
+        return lines;
+    }
 
+    public static @NotNull String getMinecraftStartTime() {
+        String s = "Get-Process | Where-Object { $_.MainWindowTitle -match 'Minecraft' } | Select-Object -ExpandProperty StartTime | Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK'";
+        List<String> r = executePowerShell(s);
+        if (!r.isEmpty()) {
+            try {
+                return OffsetDateTime.parse(r.get(0)).atZoneSameInstant(ZoneId.systemDefault()).format(UI_FORMATTER);
+            } catch (Exception ignored) {}
+        }
         return "Не запущен";
     }
 }
