@@ -18,16 +18,16 @@ public class LoadingScreen {
         this.view = GuiFactory.createMainPanel();
         this.view.setLayout(new GridBagLayout());
 
-        JPanel root = new JPanel(new BorderLayout(0, 35));
+        JPanel root = new JPanel(new BorderLayout(0, 45));
         root.setOpaque(false);
-        root.setPreferredSize(new Dimension(680, 180));
+        root.setPreferredSize(new Dimension(720, 200));
 
         JLabel title = new JLabel("АНАЛИЗ МОДИФИКАЦИЙ", SwingConstants.LEFT);
-        title.setFont(new Font("Impact", Font.PLAIN, 54));
+        title.setFont(new Font("Impact", Font.PLAIN, 58));
         title.setForeground(Color.WHITE);
 
         progressLabel = new JLabel("0 %", SwingConstants.RIGHT);
-        progressLabel.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 28));
+        progressLabel.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 32));
         progressLabel.setForeground(GuiFactory.ACCENT_BLUE);
 
         JPanel header = new JPanel(new BorderLayout());
@@ -36,18 +36,19 @@ public class LoadingScreen {
         header.add(progressLabel, BorderLayout.EAST);
 
         progressBar = new JProgressBar(0, 100);
-        progressBar.setPreferredSize(new Dimension(0, 12));
+        progressBar.setPreferredSize(new Dimension(0, 14));
+        progressBar.setBorder(BorderFactory.createEmptyBorder());
         progressBar.setUI(new BasicProgressBarUI() {
             protected void paintDeterminate(Graphics g, JComponent c) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int w = progressBar.getWidth();
                 int h = progressBar.getHeight();
-                g2.setColor(new Color(30, 30, 35));
+                g2.setColor(new Color(24, 24, 28));
                 g2.fill(new RoundRectangle2D.Double(0, 0, w, h, h, h));
                 double p = progressBar.getPercentComplete();
                 if (p > 0) {
-                    GradientPaint grad = new GradientPaint(0, 0, GuiFactory.ACCENT_BLUE, w, 0, new Color(130, 190, 255));
+                    GradientPaint grad = new GradientPaint(0, 0, new Color(60, 130, 240), w, 0, new Color(130, 200, 255));
                     g2.setPaint(grad);
                     g2.fill(new RoundRectangle2D.Double(0, 0, (int)(w * p), h, h, h));
                 }
@@ -56,10 +57,11 @@ public class LoadingScreen {
         });
 
         statusLabel = new JLabel("ПОДГОТОВКА К СКАНИРОВАНИЮ...");
-        statusLabel.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 14));
-        statusLabel.setForeground(GuiFactory.TEXT_GRAY);
+        statusLabel.setFont(new Font(GuiFactory.MONO_FONT, Font.BOLD, 15));
+        statusLabel.setForeground(new Color(140, 140, 150));
+        statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JPanel body = new JPanel(new BorderLayout(0, 20));
+        JPanel body = new JPanel(new BorderLayout(0, 25));
         body.setOpaque(false);
         body.add(progressBar, BorderLayout.NORTH);
         body.add(statusLabel, BorderLayout.SOUTH);

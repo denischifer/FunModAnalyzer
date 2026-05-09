@@ -82,7 +82,7 @@ public class ModAnalyzer {
             "Ｒａｎｄｏｍ Ｐａｔｔｅｒｎ", "Loot Yeeter", "Ｌｏｏｔ Ｙｅｅｔｅｒ", "Horizontal Aim Speed",
             "Ｈｏｒｉｚｏｎｔａｌ Ａｉｍ Ｓｐｅｅｄ", "Vertical Aim Speed", "Ｖｅｒｔｉｃａｌ Ａｉｍ Ｓｐｅｅｄ",
             "Include Head", "Ｉｎｃｌｕｄｅ Ｈｅａｄ", "Web Delay", "Ｗｅｂ Ｄｅｌａｙ", "Holding Web",
-            "Ｈｏｌｄｉｎｇ Ｗｅｂ", "Not When Affects Player", "Ｎｏｔ Ｗｈｅｎ Ａｆｆｅｃｔｓ Ｐｌａｙｅｒ",
+            "Ｈｏｌｄｉｎｇ Ｗｅｂ", "Not When Affects Player", "Ｎｏｔ Ｗｈｅｎ Ａｆфects Player",
             "Hit Delay", "Ｈｉｔ Ｄｅｌａｙ", "Switch Back", "Ｓｗｉｔｃｈ Ｂａｃｋ", "Require Hold Axe",
             "Ｒｅｑｕｉｒｅ Ｈｏｌｄ Ａｘｅ", "Fake Punch", "Ｆａｋｅ Ｐｕｎｃｈ", "placeInterval",
             "breakInterval", "stopOnKill", "activateOnRightClick", "holdCrystal",
@@ -90,7 +90,7 @@ public class ModAnalyzer {
             "ａｃｔｉｖａｔｅＯｎＲｉｇｈｔＣｌｉｃｋ", "ｄａｍａｇｅｔｉｃｋ", "ｈｏｌｄＣｒｙｓｔａｌ",
             "ｆａｋｅＰｕｎｃｈ", "Ｒｅｆｉｌｌｓ ｙｏｕｒ ｈｏｔｂａｒ ｗｉｔｈ ｐｏｔｉｏｎｓ",
             "Ｋｅｐｓ ｙｏｕ ｓｐｒｉｎｔｉｎｇ ａｔ ａｌｌ ｔｉｍｅｓ", "Macro Key", "Ａｕｔｏ Ｐｏｔ",
-            "Ｍａｃｒｏ Ｋｅｙ", "Ｐｌａｃｅｓ ａｎｃｈｏｒ， ｃｈａｒｇｅｓ ｉｔ， ｐｒｏｔｅｃｔｓ ｙｏｕ， ａｎｄ ｅｘｐｌｏｄｅｓ",
+            "Ｍａｃｒｏ Ｋｅｙ", "Ｐｌａｃｅｓ ａｎｃｈｏｒ， ｃｈａｒｇｅｓ ｉｔ， ｐｒоtеcts you, and explodes",
             "Ａｕｔｏ ｓｗａｐ ｔｏ ｓｐｅａｒ ｏｎ ａｔｔａｃｋ"
     ));
 
@@ -99,165 +99,126 @@ public class ModAnalyzer {
             "ferrite-core", "lazydfu", "starlight", "entityculling", "immediatelyfast"
     );
 
-    private static final Pattern HOST_URL_PATTERN = Pattern.compile("HostUrl=(.+)");
-
-    public static List<String> getHeuristicLogs(@NotNull Path file) {
-        List<String> logs = new ArrayList<>();
+    public static List<ModInfo.AnalysisEntry> getHeuristicResults(@NotNull Path file) {
+        List<ModInfo.AnalysisEntry> results = new ArrayList<>();
         try (InputStream is = Files.newInputStream(file)) {
             byte[] jarBytes = readAllBytesFromStream(is);
-            logs.addAll(processJarBytes(jarBytes, "", logs, true));
+            results.addAll(processJarBytes(jarBytes, "", true));
         } catch (Exception ignored) {}
-        return logs;
+        return results;
     }
 
-    private static List<String> processJarBytes(byte[] bytes, String prefix, List<String> logs, boolean isRoot) {
-        int classes = 0;
-        int obf = 0;
-        int num = 0;
-        int uni = 0;
-        int ultraShort = 0;
+    private static List<ModInfo.AnalysisEntry> processJarBytes(byte[] bytes, String prefix, boolean isRoot) {
+        List<ModInfo.AnalysisEntry> results = new ArrayList<>();
+        int classes = 0, obf = 0, num = 0, uni = 0, ultraShort = 0;
         String modId = null;
 
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(bytes))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String name = entry.getName();
-
-                if (name.equals("fabric.mod.json") && isRoot) {
-                    modId = extractModId(zis);
-                }
-
+                if (name.equals("fabric.mod.json") && isRoot) modId = extractModId(zis);
                 if (name.endsWith(".jar") && name.contains("META-INF/jars/")) {
-                    processJarBytes(readAllBytesFromStream(zis), name + " -> ", logs, false);
+                    results.addAll(processJarBytes(readAllBytesFromStream(zis), name + " -> ", false));
                     continue;
                 }
 
                 for (String pattern : SUSPICIOUS_PATTERNS) {
                     if (name.contains(pattern)) {
-                        logs.add(prefix + "Suspicious entry: " + name);
+                        results.add(createEntry(name, "Suspicious Path", pattern));
                     }
                 }
 
                 if (name.endsWith(".class")) {
                     classes++;
                     String className = name.substring(name.lastIndexOf('/') + 1, name.lastIndexOf('.'));
-
                     if (className.length() <= 2) ultraShort++;
                     if (className.matches("\\d+")) num++;
                     if (className.matches(".*[^\\x00-\\x7F].*")) uni++;
                     if (isObfuscatedPath(name)) obf++;
 
                     byte[] classBytes = readAllBytesFromStream(zis);
-                    String contentIso = new String(classBytes, StandardCharsets.ISO_8859_1);
-                    String contentUtf8 = new String(classBytes, StandardCharsets.UTF_8);
-
-                    checkContent(contentIso, name, prefix, logs);
-                    checkContent(contentUtf8, name, prefix, logs);
-                    checkBehaviors(contentIso, name, prefix, logs);
+                    checkContent(classBytes, name, results);
+                    checkBehaviors(new String(classBytes, StandardCharsets.ISO_8859_1), name, results);
                 }
             }
         } catch (Exception ignored) {}
 
         if (classes > 5) {
-            double obfPct = (double) obf / classes;
-            if (obfPct > 0.25) logs.add(prefix + "High obfuscation rate: " + (int) (obfPct * 100) + "%");
-            if (num > 0) logs.add(prefix + "Numeric classes found: " + num);
-            if (uni > 0) logs.add(prefix + "Unicode classes found: " + uni);
-            if (ultraShort > 0) logs.add(prefix + "Ultra-short class names: " + ultraShort);
+            if ((double) obf / classes > 0.25) results.add(createEntry(prefix, "Obfuscation", "Rate: " + (int)((double)obf/classes*100) + "%"));
+            if (num > 0) results.add(createEntry(prefix, "Obfuscation", "Numeric classes: " + num));
+            if (uni > 0) results.add(createEntry(prefix, "Obfuscation", "Unicode classes: " + uni));
+            if (ultraShort > 0) results.add(createEntry(prefix, "Obfuscation", "Short names: " + ultraShort));
         }
-
         if (modId != null && WHITELISTED_MODS.contains(modId) && obf > 0) {
-            logs.add("CRITICAL: Fake mod identity - " + modId + " contains obfuscated code!");
+            results.add(createEntry(modId, "CRITICAL", "Fake mod identity detected"));
         }
-
-        return logs;
+        return results;
     }
 
-    private static void checkContent(String content, String name, String prefix, List<String> logs) {
+    private static void checkContent(byte[] bytes, String name, List<ModInfo.AnalysisEntry> results) {
+        String iso = new String(bytes, StandardCharsets.ISO_8859_1);
+        String utf8 = new String(bytes, StandardCharsets.UTF_8);
         for (String cheat : CHEAT_STRINGS) {
-            if (content.contains(cheat)) {
-                logs.add(prefix + "Cheat string in " + name + ": " + cheat);
+            if (iso.contains(cheat) || utf8.contains(cheat)) {
+                results.add(createEntry(name, "Cheat String", cheat));
             }
         }
     }
 
-    private static void checkBehaviors(String content, String name, String prefix, List<String> logs) {
-        if (content.contains("java/lang/Runtime") && content.contains("exec")) {
-            logs.add(prefix + "Dangerous behavior in " + name + ": Runtime.exec()");
-        }
-        if (content.contains("HttpURLConnection") && content.contains("FileOutputStream")) {
-            logs.add(prefix + "Dangerous behavior in " + name + ": Remote file download");
-        }
-        if (content.contains("setDoOutput") && content.contains("getOutputStream") && content.contains("getProperty")) {
-            logs.add(prefix + "Dangerous behavior in " + name + ": Data exfiltration (POST)");
-        }
-        if (content.contains("java/lang/System") && (content.contains("loadLibrary") || content.contains("load"))) {
-            logs.add(prefix + "Native library loading in " + name + ": System.loadLibrary/load");
-        }
-        if (content.contains("getDeclaredField") || content.contains("getDeclaredMethod") || content.contains("setAccessible")) {
-            logs.add(prefix + "Reflection usage in " + name + ": Accessing private members");
-        }
+    private static void checkBehaviors(String content, String name, List<ModInfo.AnalysisEntry> results) {
+        if (content.contains("java/lang/Runtime") && content.contains("exec"))
+            results.add(createEntry(name, "Dangerous Behavior", "Runtime.exec()"));
+        if (content.contains("HttpURLConnection") && content.contains("FileOutputStream"))
+            results.add(createEntry(name, "Dangerous Behavior", "Remote Download"));
+        if (content.contains("setDoOutput") && content.contains("getOutputStream") && content.contains("getProperty"))
+            results.add(createEntry(name, "Dangerous Behavior", "Data Exfiltration"));
+        if (content.contains("java/lang/System") && (content.contains("loadLibrary") || content.contains("load")))
+            results.add(createEntry(name, "Native Loading", "System.load"));
+        if (content.contains("getDeclaredField") || content.contains("getDeclaredMethod") || content.contains("setAccessible"))
+            results.add(createEntry(name, "Reflection", "Private Access"));
+    }
+
+    private static ModInfo.AnalysisEntry createEntry(String clazz, String type, String detail) {
+        return ModInfo.AnalysisEntry.builder().className(clazz).type(type).detail(detail).build();
     }
 
     private static boolean isObfuscatedPath(String path) {
         String[] parts = path.split("/");
-        int singleLetterParts = 0;
-        for (String part : parts) {
-            if (part.length() == 1) singleLetterParts++;
-        }
-        return singleLetterParts >= 2;
+        int s = 0;
+        for (String p : parts) if (p.length() == 1) s++;
+        return s >= 2;
     }
 
     private static String extractModId(InputStream is) {
         try {
-            String content = new String(readAllBytesFromStream(is), StandardCharsets.UTF_8);
-            Matcher m = Pattern.compile("\"id\"\\s*:\\s*\"([^\"]+)\"").matcher(content);
+            String c = new String(readAllBytesFromStream(is), StandardCharsets.UTF_8);
+            Matcher m = Pattern.compile("\"id\"\\s*:\\s*\"([^\"]+)\"").matcher(c);
             if (m.find()) return m.group(1);
         } catch (Exception ignored) {}
         return null;
     }
 
     private static byte[] readAllBytesFromStream(InputStream is) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[16384];
-        while ((nRead = is.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-        return buffer.toByteArray();
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        int n; byte[] d = new byte[16384];
+        while ((n = is.read(d, 0, d.length)) != -1) b.write(d, 0, n);
+        return b.toByteArray();
     }
 
     public static @Nullable String getDownloadSource(@NotNull Path file) {
         try {
-            Path zonePath = Paths.get(file.toAbsolutePath() + ":Zone.Identifier");
-            if (Files.exists(zonePath)) {
-                String content = new String(Files.readAllBytes(zonePath), StandardCharsets.ISO_8859_1);
-
-                Matcher matcher = Pattern.compile("HostUrl=(.*)", Pattern.CASE_INSENSITIVE).matcher(content);
-                if (matcher.find()) {
-                    String url = matcher.group(1).trim().toLowerCase();
-
-                    if (url.contains("mediafire.com")) return "MediaFire";
-                    if (url.contains("discord.com") || url.contains("discordapp.com")) return "Discord";
-                    if (url.contains("dropbox.com")) return "Dropbox";
-                    if (url.contains("drive.google.com")) return "Google Drive";
-                    if (url.contains("mega.nz") || url.contains("mega.co.nz")) return "MEGA";
-                    if (url.contains("github.com")) return "GitHub";
-                    if (url.contains("modrinth.com")) return "Modrinth";
-                    if (url.contains("curseforge.com")) return "CurseForge";
-                    if (url.contains("anydesk.com")) return "AnyDesk";
-
-                    if (url.contains("doomsdayclient.com")) return "DoomsdayClient";
-                    if (url.contains("prestigeclient.vip")) return "PrestigeClient";
-                    if (url.contains("198macros.com")) return "198Macros";
-                    if (url.contains("dqrkis.xyz")) return "Dqrkis";
-
-                    Matcher domainMatcher = Pattern.compile("https?://(?:www\\.)?([^/]+)").matcher(url);
-                    if (domainMatcher.find()) {
-                        return domainMatcher.group(1);
-                    }
-
-                    return url;
+            Path z = Paths.get(file.toAbsolutePath() + ":Zone.Identifier");
+            if (Files.exists(z)) {
+                String c = new String(Files.readAllBytes(z), StandardCharsets.ISO_8859_1);
+                Matcher m = Pattern.compile("HostUrl=(.*)", Pattern.CASE_INSENSITIVE).matcher(c);
+                if (m.find()) {
+                    String u = m.group(1).trim().toLowerCase();
+                    String[] hosts = {"mediafire.com", "discord", "dropbox.com", "google.com", "mega.nz", "github.com", "modrinth.com", "curseforge.com", "anydesk.com", "doomsdayclient.com", "prestigeclient.vip", "198macros.com", "dqrkis.xyz"};
+                    for (String h : hosts) if (u.contains(h)) return h;
+                    Matcher dm = Pattern.compile("https?://(?:www\\.)?([^/]+)").matcher(u);
+                    if (dm.find()) return dm.group(1);
+                    return u;
                 }
             }
         } catch (Exception ignored) {}
@@ -265,21 +226,18 @@ public class ModAnalyzer {
     }
 
     public static boolean checkModrinthApi(@NotNull Path file) {
-        HttpURLConnection conn = null;
+        HttpURLConnection c = null;
         try {
-            String sha1 = FileUtil.getSha1Hash(file);
-            URL url = new URL("https://api.modrinth.com/v2/version_file/" + sha1 + "?algorithm=sha1");
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestProperty("User-Agent", "FunModAnalyzer/1.1");
-            conn.setConnectTimeout(3000);
-            if (conn.getResponseCode() == 200) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    return reader.readLine().contains("\"project_id\"");
+            URL u = new URL("https://api.modrinth.com/v2/version_file/" + FileUtil.getSha1Hash(file) + "?algorithm=sha1");
+            c = (HttpURLConnection) u.openConnection();
+            c.setRequestProperty("User-Agent", "FunModAnalyzer/1.1");
+            c.setConnectTimeout(3000);
+            if (c.getResponseCode() == 200) {
+                try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
+                    return r.readLine().contains("\"project_id\"");
                 }
             }
-        } catch (Exception ignored) {} finally {
-            if (conn != null) conn.disconnect();
-        }
+        } catch (Exception ignored) {} finally { if (c != null) c.disconnect(); }
         return false;
     }
 }

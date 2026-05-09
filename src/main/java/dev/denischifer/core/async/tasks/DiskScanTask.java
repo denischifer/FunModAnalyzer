@@ -9,61 +9,59 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DiskScanTask extends ScanTask<List<ModInfo>> {
-    private final Runnable onProgressTick;
     private final List<Path> jarFiles;
-    @Getter
-    private int current;
-    @Getter
-    private final int total;
+    private final AtomicInteger current = new AtomicInteger(0);
+    @Getter private final int total;
 
-    public DiskScanTask(@NotNull Path targetDirectory, @NotNull Runnable onProgressTick) throws IOException {
+    public DiskScanTask(@NotNull Path targetDirectory) throws IOException {
         super("DiskScanTask");
-        this.onProgressTick = onProgressTick;
         this.jarFiles = findJarFiles(targetDirectory);
         this.total = jarFiles.size();
     }
 
+    public int getCurrent() {
+        return current.get();
+    }
+
     @Override
-    public List<ModInfo> call() throws Exception {
-        List<ModInfo> results = new ArrayList<>();
+    public List<ModInfo> call() {
+        if (jarFiles.isEmpty()) return Collections.emptyList();
 
-        for (Path jar : jarFiles) {
+        return jarFiles.parallelStream().map(jar -> {
             boolean modrinth = ModAnalyzer.checkModrinthApi(jar);
-            List<String> logs;
+            List<ModInfo.AnalysisEntry> analysisResults = modrinth
+                    ? Collections.emptyList()
+                    : ModAnalyzer.getHeuristicResults(jar);
 
-            if (modrinth) {
-                logs = Collections.singletonList("Проверка пропущена");
-            } else {
-                logs = ModAnalyzer.getHeuristicLogs(jar);
-            }
-
-            results.add(ModInfo.builder()
+            ModInfo info = ModInfo.builder()
                     .name(jar.getFileName().toString())
                     .path(jar.toAbsolutePath().toString())
-                    .sizeBytes(Files.size(jar))
+                    .sizeBytes(getFileSizeSafe(jar))
                     .modrinthFound(modrinth)
-                    .suspicious(!modrinth && !logs.isEmpty())
+                    .suspicious(!modrinth && !analysisResults.isEmpty())
                     .downloadSource(ModAnalyzer.getDownloadSource(jar))
-                    .heuristicLogs(logs)
-                    .build());
+                    .analysisResults(analysisResults)
+                    .build();
 
-            current++;
-            onProgressTick.run();
-        }
+            current.incrementAndGet();
+            return info;
+        }).collect(Collectors.toList());
+    }
 
-        return results;
+    private long getFileSizeSafe(Path p) {
+        try { return Files.size(p); } catch (IOException e) { return 0; }
     }
 
     private List<Path> findJarFiles(Path dir) throws IOException {
-        if (!Files.exists(dir)) return Collections.emptyList();
-        try (Stream<Path> stream = Files.walk(dir)) {
+        if (dir == null || !Files.exists(dir)) return Collections.emptyList();
+        try (Stream<Path> stream = Files.walk(dir, 1)) {
             return stream.filter(p -> p.toString().toLowerCase().endsWith(".jar") && Files.isRegularFile(p))
                     .collect(Collectors.toList());
         }
